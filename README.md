@@ -1,7 +1,7 @@
 <!-- PROJECT LOGO -->
 
 <p align="center">
-  <h1 align="center">LongSplat: Robust Unposed 3D Gaussian Splatting for Casual Long Videos</h1>
+  <h1 align="center">[ICCV 2025] LongSplat: Robust Unposed 3D Gaussian Splatting for Casual Long Videos</h1>
   <p align="center">
     <a href="https://linjohnss.github.io/"><strong>Chin-Yang Lin</strong></a>
     ·
@@ -64,7 +64,7 @@ Download our preprocessed Hike dataset from [Google Drive](https://drive.google.
 
 ### Tanks and Temples
 
-Download the data preprocessed by [Nope-NeRF](https://github.com/ActiveVisionLab/nope-nerf/?tab=readme-ov-file#Data) as below, and the data is saved into the `./data/Tanks` folder.
+Download the data preprocessed by [Nope-NeRF](https://github.com/ActiveVisionLab/nope-nerf/?tab=readme-ov-file#Data) as below, and the data is saved into the `./data/tanks` folder.
 ```bash
 wget https://www.robots.ox.ac.uk/~wenjing/Tanks.zip
 ```

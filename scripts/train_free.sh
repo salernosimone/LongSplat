@@ -20,7 +20,7 @@ scenes=("grass" "hydrant" "lab" "pillar" "road" "sky" "stair")
 
 for scene in "${scenes[@]}"; do
     timestamp=$(date "+%Y-%m-%d_%H:%M:%S")
-    python train.py --eval -s ./data/free_dataset/$scene -m outputs/free_dataset/$scene/baseline/"$timestamp" -r 2 --port $port --mode free
-    python render.py -m outputs/free_dataset/$scene/baseline/"$timestamp"
-    python metrics.py -m outputs/free_dataset/$scene/baseline/"$timestamp"
+    python train.py --eval -s ./data/free/$scene -m outputs/free/$scene/baseline/"$timestamp" -r 2 --port $port --mode free
+    python render.py -m outputs/free/$scene/baseline/"$timestamp"
+    python metrics.py -m outputs/free/$scene/baseline/"$timestamp"
 done

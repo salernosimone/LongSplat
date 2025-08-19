@@ -20,7 +20,7 @@ scene=("Ballroom" "Barn" "Church" "Family" "Francis" "Horse" "Ignatius" "Museum"
 
 for scene in "${scene[@]}"; do
     timestamp=$(date "+%Y-%m-%d_%H:%M:%S")
-    python train.py --eval -s "./data/Tanks/$scene" -m "outputs/Tanks/$scene/baseline/$timestamp" --port $port --mode tanks
-    python render.py -m "outputs/Tanks/$scene/baseline/$timestamp"
-    python metrics.py -m "outputs/Tanks/$scene/baseline/$timestamp"
+    python train.py --eval -s "./data/tanks/$scene" -m "outputs/tanks/$scene/baseline/$timestamp" --port $port --mode tanks
+    python render.py -m "outputs/tanks/$scene/baseline/$timestamp"
+    python metrics.py -m "outputs/tanks/$scene/baseline/$timestamp"
 done
