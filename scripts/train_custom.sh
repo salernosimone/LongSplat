@@ -7,6 +7,7 @@
 # license agreement from NVIDIA CORPORATION is strictly prohibited.
 
 scene='./data/IMG_4190'
+images='images'
 
 function rand(){
     min=$1

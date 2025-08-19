@@ -15,7 +15,7 @@
     ·
     <a href="https://yulunalexliu.github.io/"><strong>Yu-Lun Liu</strong></a>
   </p>
-  <h3 align="center"><a href="https://linjohnss.github.io/longsplat">Project Page</a> | <a href="https://linjohnss.github.io/longsplat">Paper</a> | <a href="https://linjohnss.github.io/longsplat">Evaluation Results</a></h3>
+  <h3 align="center"><a href="https://linjohnss.github.io/longsplat">Project Page</a> | <a href="https://linjohnss.github.io/longsplat">Paper</a> | <a href="https://drive.google.com/drive/folders/1b-QgNzWVpDaYkHQf3ycKORd7s5WekjGa?usp=drive_link">Evaluation Results</a></h3>
   <div align="center"></div>
 </p>
 
@@ -111,10 +111,10 @@ Our render is built upon [3DGS](https://github.com/graphdeco-inria/gaussian-spla
 
 If you find this code helpful, please cite:
 ```
-@article{lin2024longsplat,
+@inproceedings{lin2025longsplat,
   title={LongSplat: Robust Unposed 3D Gaussian Splatting for Casual Long Videos},
   author={Chin-Yang Lin and Cheng Sun and Fu-En Yang and Min-Hung Chen and Yen-Yu Lin and Yu-Lun Liu},
-  journal={ICCV},
+  booktitle={ICCV},
   year={2025}
 }
 ```
