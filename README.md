@@ -15,7 +15,7 @@
     ·
     <a href="https://yulunalexliu.github.io/"><strong>Yu-Lun Liu</strong></a>
   </p>
-  <h3 align="center"><a href="https://linjohnss.github.io/longsplat">Project Page</a> | <a href="https://linjohnss.github.io/longsplat">Paper</a> | <a href="https://drive.google.com/drive/folders/1b-QgNzWVpDaYkHQf3ycKORd7s5WekjGa?usp=drive_link">Evaluation Results</a></h3>
+  <h3 align="center"><a href="https://linjohnss.github.io/longsplat">Project Page</a> | <a href="http://arxiv.org/abs/2508.14041">Paper</a> | <a href="https://drive.google.com/drive/folders/1b-QgNzWVpDaYkHQf3ycKORd7s5WekjGa?usp=drive_link">Evaluation Results</a></h3>
   <div align="center"></div>
 </p>
 
