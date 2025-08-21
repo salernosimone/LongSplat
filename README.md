@@ -25,6 +25,15 @@
   </a>
 </p>
 
+## Overview
+LongSplat is an unposed 3D Gaussian Splatting framework for robust reconstruction from casually captured long videos. Featuring incremental joint optimization, pose estimation with MASt3R, and adaptive octree anchoring, LongSplat achieves high-quality novel view synthesis from free viewpoints while remaining memory-efficient and scalable.
+
+<p align="center">
+  <a href="">
+    <img src="./assets/teaser.png" alt="Logo" width="100%">
+  </a>
+</p>
+
 ## Installation
 
 1. Clone LongSplat.
@@ -109,7 +118,7 @@ Our render is built upon [3DGS](https://github.com/graphdeco-inria/gaussian-spla
 
 ## Citation
 
-If you find this code helpful, please cite:
+Please consider starring ⭐ this repo and citing our paper 📝 if you find it useful.
 ```
 @inproceedings{lin2025longsplat,
   title={LongSplat: Robust Unposed 3D Gaussian Splatting for Casual Long Videos},
