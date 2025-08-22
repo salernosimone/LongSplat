@@ -75,12 +75,18 @@ def readJsonCameras(cameras, cameras_gt, images_folder):
         sys.stdout.write('\rReading camera {}/{}'.format(idx+1, len(cameras)))
         sys.stdout.flush()
 
-        for key in cameras_gt:
-            cam_gt = cameras_gt[key]
-            if cam["image_name"] == cam_gt.name.split(".")[0]:
-                break
-        R_gt = np.transpose(qvec2rotmat(cam_gt.qvec))
-        T_gt = np.array(cam_gt.tvec)
+        R_gt = None
+        T_gt = None
+        
+        # Only try to get GT poses if cameras_gt is available
+        if cameras_gt is not None:
+            for key in cameras_gt:
+                cam_gt = cameras_gt[key]
+                if cam["image_name"] == cam_gt.name.split(".")[0]:
+                    R_gt = np.transpose(qvec2rotmat(cam_gt.qvec))
+                    T_gt = np.array(cam_gt.tvec)
+                    break
+        
         R = np.array(cam["R"])
         T = np.array(cam["T"])
         FovY = focal2fov(cam["Focaly"], cam["height"])
@@ -231,16 +237,31 @@ def readCamerasFromTransforms(path, transformsfile, white_background, extension=
 
 def readEvalSceneInfo(path, model_path, images, eval, llffhold=8):
     if "co3d" not in path:
+        cam_extrinsics = None
+        cam_intrinsics = None
+        
+        # Try to read GT poses, but don't fail if they're not available
         try:
             cameras_extrinsic_file = os.path.join(path, "sparse/0", "images.bin")
             cameras_intrinsic_file = os.path.join(path, "sparse/0", "cameras.bin")
-            cam_extrinsics = read_extrinsics_binary(cameras_extrinsic_file)
-            cam_intrinsics = read_intrinsics_binary(cameras_intrinsic_file)
-        except:
-            cameras_extrinsic_file = os.path.join(path, "sparse/0", "images.txt")
-            cameras_intrinsic_file = os.path.join(path, "sparse/0", "cameras.txt")
-            cam_extrinsics = read_extrinsics_text(cameras_extrinsic_file)
-            cam_intrinsics = read_intrinsics_text(cameras_intrinsic_file)
+            if os.path.exists(cameras_extrinsic_file) and os.path.exists(cameras_intrinsic_file):
+                cam_extrinsics = read_extrinsics_binary(cameras_extrinsic_file)
+                cam_intrinsics = read_intrinsics_binary(cameras_intrinsic_file)
+                print(f"Successfully loaded GT poses from {cameras_extrinsic_file}")
+            else:
+                print(f"GT pose files not found at {cameras_extrinsic_file}, running in custom mode without GT poses")
+        except Exception as e:
+            try:
+                cameras_extrinsic_file = os.path.join(path, "sparse/0", "images.txt")
+                cameras_intrinsic_file = os.path.join(path, "sparse/0", "cameras.txt")
+                if os.path.exists(cameras_extrinsic_file) and os.path.exists(cameras_intrinsic_file):
+                    cam_extrinsics = read_extrinsics_text(cameras_extrinsic_file)
+                    cam_intrinsics = read_intrinsics_text(cameras_intrinsic_file)
+                    print(f"Successfully loaded GT poses from {cameras_extrinsic_file}")
+                else:
+                    print(f"GT pose files not found at {cameras_extrinsic_file}, running in custom mode without GT poses")
+            except Exception as e2:
+                print(f"Failed to load GT poses: {e2}. Running in custom mode without GT poses.")
 
         reading_dir = "images" if images == None else images
         if eval:
@@ -263,20 +284,30 @@ def readEvalSceneInfo(path, model_path, images, eval, llffhold=8):
 
         nerf_normalization = None
 
+        # Only try to load point cloud if GT poses are available
+        pcd = None
         ply_path = os.path.join(path, "sparse/0/points3D.ply")
-        bin_path = os.path.join(path, "sparse/0/points3D.bin")
-        txt_path = os.path.join(path, "sparse/0/points3D.txt")
-        if not os.path.exists(ply_path):
-            print("Converting point3d.bin to .ply, will happen only the first time you open the scene.")
+        if cam_extrinsics is not None:
+            bin_path = os.path.join(path, "sparse/0/points3D.bin")
+            txt_path = os.path.join(path, "sparse/0/points3D.txt")
+            if not os.path.exists(ply_path):
+                print("Converting point3d.bin to .ply, will happen only the first time you open the scene.")
+                try:
+                    xyz, rgb, _ = read_points3D_binary(bin_path)
+                except:
+                    try:
+                        xyz, rgb, _ = read_points3D_text(txt_path)
+                    except:
+                        print("Failed to load point cloud data")
+                        xyz, rgb = None, None
+                if xyz is not None:
+                    storePly(ply_path, xyz, rgb)
             try:
-                xyz, rgb, _ = read_points3D_binary(bin_path)
+                pcd = fetchPly(ply_path)
             except:
-                xyz, rgb, _ = read_points3D_text(txt_path)
-            storePly(ply_path, xyz, rgb)
-        try:
-            pcd = fetchPly(ply_path)
-        except:
-            pcd = None
+                pcd = None
+        else:
+            print("Skipping point cloud loading as GT poses are not available")
 
         scene_info = SceneInfo(point_cloud=pcd,
                             train_cameras=train_cam_infos,
