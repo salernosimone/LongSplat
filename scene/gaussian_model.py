@@ -19,6 +19,7 @@ from simple_knn._C import distCUDA2
 from utils.graphics_utils import BasicPointCloud, geom_transform_points, depth_edge
 from utils.general_utils import strip_symmetric, build_scaling_rotation
 from scene.embedding import Embedding
+from einops import repeat
 
 class GaussianModel:
 
@@ -54,7 +55,8 @@ class GaussianModel:
                  add_cov_dist : bool = False,
                  add_color_dist : bool = False,
                  ):
-
+        self.active_sh_degree = 0
+        self.max_sh_degree = 3 
         self.feat_dim = feat_dim
         self.n_offsets = n_offsets
         self.voxel_size = voxel_size
@@ -218,9 +220,31 @@ class GaussianModel:
     @property
     def get_opacity(self):
         return self.opacity_activation(self._opacity)
+
+    @property
+    def get_xyz(self):
+        return self._xyz
+    
+    @property
+    def get_features(self):
+        features_dc = self._features_dc
+        features_rest = self._features_rest
+        return torch.cat((features_dc, features_rest), dim=1)
+    
+    @property
+    def get_features_dc(self):
+        return self._features_dc
+    
+    @property
+    def get_features_rest(self):
+        return self._features_rest
     
     def get_covariance(self, scaling_modifier = 1):
         return self.covariance_activation(self.get_scaling, scaling_modifier, self._rotation)
+
+    def oneupSHdegree(self):
+        if self.active_sh_degree < self.max_sh_degree:
+            self.active_sh_degree += 1
     
     def voxelize_sample(self, data=None, voxel_size=0.01):
         data = data[torch.randperm(data.shape[0])]
@@ -458,6 +482,55 @@ class GaussianModel:
         self.reproj_loss_scheduler_args = get_expon_lr_func(lr_init=training_args.reproj_loss_weight_init,
                                                         lr_final=training_args.reproj_loss_weight_final,
                                                         max_steps=training_args.iterations)
+    
+    def convert_to_3dgs(self, purning_mask=None):
+        fused_point_cloud = repeat(self._anchor, 'n (c) -> (n k) (c)', k=self.n_offsets) + repeat(self.get_scaling[:, :3], 'n (c) -> (n k) (c)', k=self.n_offsets) * self._offset.view([-1, 3])
+
+        if purning_mask is not None:
+            fused_point_cloud = fused_point_cloud[purning_mask]
+
+        fused_color = torch.zeros((fused_point_cloud.shape[0], 3)).float().cuda()
+        features = torch.zeros((fused_color.shape[0], 3, (self.max_sh_degree + 1) ** 2)).float().cuda()
+        features[:, :3, 0 ] = fused_color
+        features[:, 3:, 1:] = 0.0
+
+        print("Number of points at initialisation : ", fused_point_cloud.shape[0])
+
+        dist2 = torch.clamp_max(distCUDA2(fused_point_cloud), self.voxel_size)
+        scales = torch.log(torch.sqrt(dist2))[...,None].repeat(1, 3)
+        rots = torch.zeros((fused_point_cloud.shape[0], 4), device="cuda")
+        rots[:, 0] = 1
+
+        opacities = self.inverse_opacity_activation(0.1 * torch.ones((fused_point_cloud.shape[0], 1), dtype=torch.float, device="cuda"))
+
+        self._xyz = nn.Parameter(fused_point_cloud.requires_grad_(True))
+        self._features_dc = nn.Parameter(features[:,:,0:1].transpose(1, 2).contiguous().requires_grad_(True))
+        self._features_rest = nn.Parameter(features[:,:,1:].transpose(1, 2).contiguous().requires_grad_(True))
+        self._scaling = nn.Parameter(scales.requires_grad_(True))
+        self._rotation = nn.Parameter(rots.requires_grad_(True))
+        self._opacity = nn.Parameter(opacities.requires_grad_(True))
+        self.max_radii2D = torch.zeros((self.get_xyz.shape[0]), device="cuda")
+    
+    def training_setup_3dgs(self, training_args):
+        self.percent_dense = training_args.percent_dense
+        self.xyz_gradient_accum = torch.zeros((self.get_xyz.shape[0], 1), device="cuda")
+        self.denom = torch.zeros((self.get_xyz.shape[0], 1), device="cuda")
+
+        l = [
+            {'params': [self._xyz], 'lr': training_args.position_lr_init * self.spatial_lr_scale, "name": "xyz"},
+            {'params': [self._features_dc], 'lr': training_args.feature_lr, "name": "f_dc"},
+            {'params': [self._features_rest], 'lr': training_args.feature_lr / 20.0, "name": "f_rest"},
+            {'params': [self._opacity], 'lr': training_args.opacity_lr, "name": "opacity"},
+            {'params': [self._scaling], 'lr': training_args.scaling_lr, "name": "scaling"},
+            {'params': [self._rotation], 'lr': training_args.rotation_lr, "name": "rotation"}
+        ]
+
+        self.optimizer = torch.optim.Adam(l, lr=0.0, eps=1e-15)
+
+        self.xyz_scheduler_args = get_expon_lr_func(lr_init=training_args.position_lr_init*self.spatial_lr_scale,
+                                                    lr_final=training_args.position_lr_final*self.spatial_lr_scale,
+                                                    lr_delay_mult=training_args.position_lr_delay_mult,
+                                                    max_steps=training_args.position_lr_max_steps)
 
     def training_pose_setup(self, cameras, training_args):
         l = []
@@ -526,6 +599,20 @@ class GaussianModel:
             l.append('rot_{}'.format(i))
         return l
 
+    def construct_list_of_attributes_3dgs(self):
+        l = ['x', 'y', 'z', 'nx', 'ny', 'nz']
+        # All channels except the 3 DC
+        for i in range(self._features_dc.shape[1]*self._features_dc.shape[2]):
+            l.append('f_dc_{}'.format(i))
+        for i in range(self._features_rest.shape[1]*self._features_rest.shape[2]):
+            l.append('f_rest_{}'.format(i))
+        l.append('opacity')
+        for i in range(self._scaling.shape[1]):
+            l.append('scale_{}'.format(i))
+        for i in range(self._rotation.shape[1]):
+            l.append('rot_{}'.format(i))
+        return l
+
     def save_ply(self, path):
         mkdir_p(os.path.dirname(path))
 
@@ -541,6 +628,25 @@ class GaussianModel:
 
         elements = np.empty(anchor.shape[0], dtype=dtype_full)
         attributes = np.concatenate((anchor, normals, offset, anchor_feat, opacities, scale, rotation), axis=1)
+        elements[:] = list(map(tuple, attributes))
+        el = PlyElement.describe(elements, 'vertex')
+        PlyData([el]).write(path)
+
+    def save_ply_3dgs(self, path):
+        mkdir_p(os.path.dirname(path))
+
+        xyz = self._xyz.detach().cpu().numpy()
+        normals = np.zeros_like(xyz)
+        f_dc = self._features_dc.detach().transpose(1, 2).flatten(start_dim=1).contiguous().cpu().numpy()
+        f_rest = self._features_rest.detach().transpose(1, 2).flatten(start_dim=1).contiguous().cpu().numpy()
+        opacities = self._opacity.detach().cpu().numpy()
+        scale = self._scaling.detach().cpu().numpy()
+        rotation = self._rotation.detach().cpu().numpy()
+
+        dtype_full = [(attribute, 'f4') for attribute in self.construct_list_of_attributes_3dgs()]
+
+        elements = np.empty(xyz.shape[0], dtype=dtype_full)
+        attributes = np.concatenate((xyz, normals, f_dc, f_rest, opacities, scale, rotation), axis=1)
         elements[:] = list(map(tuple, attributes))
         el = PlyElement.describe(elements, 'vertex')
         PlyData([el]).write(path)

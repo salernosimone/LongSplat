@@ -29,7 +29,7 @@ from argparse import ArgumentParser
 from arguments import ModelParams, PipelineParams, get_combined_args
 from gaussian_renderer import GaussianModel, generate_neural_gaussians
 from utils.visualize_utils import vis_depth, vis_pose, eval_pose_metrics
-from utils.pose_utils import update_pose, smooth_poses_spline
+from utils.pose_utils import update_pose, smooth_poses_spline, save_transforms
 from scene.cameras import Camera
 from utils.loss_utils import l1_loss
 import cv2
@@ -247,6 +247,7 @@ def render_sets(dataset : ModelParams, iteration : int, pipeline : PipelineParam
             ref_viewpoint = scene.getTrainCameras()[next_train_idx]            
             viewpoint.update_RT(ref_viewpoint.R, ref_viewpoint.T)
             pose_estimation_test(gaussians, viewpoint, pipeline, background)
+            save_transforms(scene.getTestCameras().copy(), os.path.join(scene.model_path, "cameras_all_test.json"))
         with torch.no_grad():
             render_set(dataset.model_path, "test", scene.loaded_iter, scene.getTestCameras(), gaussians, pipeline, background)
 

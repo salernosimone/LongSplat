@@ -34,6 +34,14 @@ LongSplat is an unposed 3D Gaussian Splatting framework for robust reconstructio
   </a>
 </p>
 
+## News
+
+🎉 **2025.08.27**: Release converter to 3DGS format for compatibility with general 3DGS viewers. See [Convert to 3DGS Format](#convert-to-3dgs-format) section.
+
+🎉 **2025.08.20**: Code release!
+
+
+
 ## Installation
 
 1. Clone LongSplat.
@@ -112,6 +120,26 @@ bash scripts/train_tnt.sh
 ```bash
 bash scripts/train_custom.sh
 ```
+
+### Convert to 3DGS Format
+
+LongSplat uses an anchor + MLP structure for efficient reconstruction. We provide a conversion script to transform LongSplat results into the standard 3DGS format, which outputs a `point_cloud.ply` file that can be used with general 3DGS viewers.
+
+**Note**: Converting to 3DGS format will change both quality and model size. We recommend applying pre-pruning to reduce the model size before conversion.
+
+```bash
+# Convert LongSplat output to 3DGS format
+python convert_3dgs.py -m PATH_TO_TRAINED_MODEL --prune_ratio 0.6
+```
+
+
+This demonstrates the converted result visualized on [Three.js 3D Gaussian Splatting viewer](https://projects.markkellogg.org/threejs/demo_gaussian_splats_3d.php?art=1&cu=0,1,0&cp=0,1,0&cla=1,0,0&aa=false&2d=false&sh=0).
+
+<p align="center">
+  <a href="">
+    <img src="./assets/demo_3dgs.gif" alt="Demo Video" width="90%">
+  </a>
+</p>
 
 ## Acknowledgement
 Our render is built upon [3DGS](https://github.com/graphdeco-inria/gaussian-splatting). The data processing and visualization codes are partially borrowed from [Scaffold-GS](https://github.com/city-super/Scaffold-GS). We thank all the authors for their great repos.
