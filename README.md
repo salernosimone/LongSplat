@@ -55,6 +55,7 @@ cd LongSplat
 conda create -n longsplat python=3.10.13 cmake=3.14.0 -y
 conda activate longsplat
 conda install pytorch torchvision pytorch-cuda=12.1 -c pytorch -c nvidia  # use the correct version of cuda for your system
+pip install torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cu124.html
 pip install -r requirements.txt
 pip install submodules/simple-knn
 pip install submodules/diff-gaussian-rasterization
