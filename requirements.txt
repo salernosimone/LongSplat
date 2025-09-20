@@ -20,7 +20,5 @@ jaxtyping
 laspy
 einops
 plyfile
-torch_scatter
 torchmetrics
 py3-wget
-git+https://github.com/facebookresearch/pytorch3d.git@stable
